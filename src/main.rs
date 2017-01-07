@@ -6,7 +6,7 @@ use std::io::prelude::*;
 use std::fs::File;
 use glium::{DisplayBuild, Surface};
 use clap::{Arg, App};
-use std::time::SystemTime;
+use std::{thread, time};
 
 
 #[derive(Copy, Clone)]
@@ -32,10 +32,17 @@ fn main() {
              .value_name("FLOAT")
              .help("At least one. Powers of two are best. Default: 2.")
              .takes_value(true))
+        .arg(Arg::with_name("fps")
+             .short("f")
+             .long("fps")
+             .value_name("FLOAT")
+             .help("How many frames per second to draw. Default: 2.")
+             .takes_value(true))
         .get_matches();
 
     let shader_src_name = matches.value_of("INPUT").unwrap_or("shaders/blue.frag");
-    let quality: f64 = matches.value_of("quality").unwrap_or("2").parse().unwrap_or(2.);
+    let quality: f32 = matches.value_of("quality").unwrap_or("2").parse().unwrap_or(2.);
+    let fps: f32 = matches.value_of("fps").unwrap_or("2").parse().unwrap_or(2.);
 
     // Load the shader.
     let mut shader_src_file = File::open(shader_src_name).unwrap();
@@ -63,6 +70,7 @@ fn main() {
         out vec2 v_tex_coords;
 
         void main() {
+            v_tex_coords = tex_coords;
             gl_Position = vec4(position, 0.0, 1.0);
         }
     "#;
@@ -83,28 +91,41 @@ fn main() {
     "#;
 
     // Setup render-to-texture.
-    let into_rtt = quality > 1.;
     let texture_program = glium::Program::from_source(&display, vertex_shader_src, texture_shader_src, None).unwrap();
-    let rtt = glium::texture::texture2d::Texture2d::empty(&display, 800, 800).unwrap();
+    let mut rtt = glium::texture::texture2d::Texture2d::empty(&display, 800, 800).unwrap();
 
-    let time = SystemTime::now();
+    let time = time::SystemTime::now();
     let mut res = (800 as f32, 800 as f32);
 
     // Render. Update. Shine.
     loop {
-        let mut target = display.draw();
+        let time_start = time::SystemTime::now();
+
+        // If a resize has occured, we need to make a new rtt. Can't do it inside the event later,
+        // as rtt will be borrowed by then. I'm sure there's to be a better way, though…
+        let rtt_size = ((res.0 / quality) as u32, (res.1 / quality) as u32);
+        if rtt.dimensions() != rtt_size {
+            rtt = glium::texture::texture2d::Texture2d::empty(&display, rtt_size.0, rtt_size.1).unwrap();
+        }
+
+        let mut target = rtt.as_surface();
         target.clear_color(0.0, 0.0, 1.0, 1.0);
 
         // Uniforms.
         let time_elapsed = time.elapsed().unwrap();
         let ms = time_elapsed.as_secs() as f32 + (time_elapsed.subsec_nanos() as f32 / (10 as f32).powi(9));
-        let uniforms = uniform! {
+        let uniforms = uniform!{
             time: ms,
             resolution: res
         };
 
+        // Draw fancy shader.
         target.draw(&vertex_buffer, &indices, &program, &uniforms, &Default::default()).unwrap();
-        target.finish().unwrap();
+
+        // Draw to screen.
+        let mut screen = display.draw();
+        screen.draw(&vertex_buffer, &indices, &texture_program, &uniform! {tex: &rtt}, &Default::default()).unwrap();
+        screen.finish().unwrap();
 
         for ev in display.poll_events() {
             match ev {
@@ -112,6 +133,13 @@ fn main() {
                 glium::glutin::Event::Closed => return,
                 _ => ()
             }
+        }
+
+        let elapsed = time_start.elapsed().unwrap();
+        let to_sleep = (1000. / fps) as i64 - (elapsed.subsec_nanos() / 1000) as i64;
+        if to_sleep > 0 {
+            let duration = time::Duration::from_millis(to_sleep as u64);
+            thread::sleep(duration);
         }
     }
 }
