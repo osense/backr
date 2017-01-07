@@ -1,0 +1,8 @@
+[package]
+name = "backr"
+version = "0.1.0"
+authors = ["Adam Krupicka <akr@mail.muni.cz>"]
+
+[dependencies]
+glium = "*"
+clap = "*"
