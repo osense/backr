@@ -101,11 +101,16 @@ fn main() {
     loop {
         let time_start = time::SystemTime::now();
 
-        // If a resize has occured, we need to make a new rtt. Can't do it inside the event later,
-        // as rtt will be borrowed by then. I'm sure there's to be a better way, though…
-        let rtt_size = ((res.0 / quality) as u32, (res.1 / quality) as u32);
-        if rtt.dimensions() != rtt_size {
-            rtt = glium::texture::texture2d::Texture2d::empty(&display, rtt_size.0, rtt_size.1).unwrap();
+        for ev in display.poll_events() {
+            match ev {
+                glium::glutin::Event::Resized(x, y) => {
+                    res = (x as f32, y as f32);
+                    let (sx, sy) = ((res.0 / quality) as u32, (res.1 / quality) as u32);
+                    rtt = glium::texture::texture2d::Texture2d::empty(&display, sx, sy).unwrap();
+                }
+                glium::glutin::Event::Closed => return,
+                _ => ()
+            }
         }
 
         let mut target = rtt.as_surface();
@@ -126,14 +131,6 @@ fn main() {
         let mut screen = display.draw();
         screen.draw(&vertex_buffer, &indices, &texture_program, &uniform! {tex: &rtt}, &Default::default()).unwrap();
         screen.finish().unwrap();
-
-        for ev in display.poll_events() {
-            match ev {
-                glium::glutin::Event::Resized(x, y) => res = (x as f32, y as f32),
-                glium::glutin::Event::Closed => return,
-                _ => ()
-            }
-        }
 
         let elapsed = time_start.elapsed().unwrap();
         let to_sleep = (1000. / fps) as i64 - (elapsed.subsec_nanos() / 1000000) as i64;
