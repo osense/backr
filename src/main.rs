@@ -136,7 +136,7 @@ fn main() {
         }
 
         let elapsed = time_start.elapsed().unwrap();
-        let to_sleep = (1000. / fps) as i64 - (elapsed.subsec_nanos() / 1000) as i64;
+        let to_sleep = (1000. / fps) as i64 - (elapsed.subsec_nanos() / 1000000) as i64;
         if to_sleep > 0 {
             let duration = time::Duration::from_millis(to_sleep as u64);
             thread::sleep(duration);
