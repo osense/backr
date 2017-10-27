@@ -3,6 +3,8 @@
 uniform float time;
 uniform vec2 resolution;
 
+const float SPEED = .005;
+
 float length2(vec2 p) { return dot(p, p); }
 
 float noise(vec2 p){
@@ -23,8 +25,8 @@ float worley(vec2 p) {
 float fworley(vec2 p) {
 	return sqrt(sqrt(sqrt(
 		1.1 * // light
-		worley(p*5. + .3 + time*.0525) *
-		sqrt(worley(p * 50. + 0.3 + time * -0.15)) *
+		worley(p*5. + .3 + time*SPEED) *
+		sqrt(worley(p * 50. + 0.3 - time * SPEED)) *
 		sqrt(sqrt(worley(p * -10. + 9.3))))));
 }
 
