@@ -133,7 +133,7 @@ fn main() {
         let ms = time_elapsed.as_secs() as f32 + (time_elapsed.subsec_nanos() as f32 / (10 as f32).powi(9));
         let uniforms = uniform!{
             time: ms,
-            resolution: res
+            resolution: (res.0 / quality, res.1 / quality)
         };
 
         // Draw fancy shader.
