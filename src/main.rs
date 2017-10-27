@@ -3,8 +3,9 @@ extern crate glium;
 extern crate clap;
 
 use std::io::prelude::*;
+use std::process;
 use std::fs::File;
-use glium::{DisplayBuild, Surface};
+use glium::Surface;
 use clap::{Arg, App};
 use std::{thread, time};
 
@@ -40,7 +41,7 @@ fn main() {
              .takes_value(true))
         .get_matches();
 
-    let shader_src_name = matches.value_of("INPUT").unwrap_or("shaders/blue.frag");
+    let shader_src_name = matches.value_of("INPUT").unwrap_or("shaders/skyline.frag");
     let quality: f32 = matches.value_of("quality").unwrap_or("2").parse().unwrap_or(2.);
     let fps: f32 = matches.value_of("fps").unwrap_or("2").parse().unwrap_or(2.);
 
@@ -50,7 +51,12 @@ fn main() {
     shader_src_file.read_to_string(&mut shader_src).unwrap();
 
     // Initialize OpenGL stuff.
-    let display = glium::glutin::WindowBuilder::new().build_glium().unwrap();
+    let mut events_loop = glium::glutin::EventsLoop::new();
+    let context = glium::glutin::ContextBuilder::new();
+    let window = glium::glutin::WindowBuilder::new()
+        .with_dimensions(800, 600)
+        .with_title("Backr");
+    let display = glium::Display::new(window, context, &events_loop).unwrap();
 
     let vertex1 = Vertex { position: (-1.0, -1.0), tex_coords: (0.0, 0.0) };
     let vertex2 = Vertex { position: (-1.0,  1.0), tex_coords: (0.0, 1.0) };
@@ -101,17 +107,23 @@ fn main() {
     loop {
         let time_start = time::SystemTime::now();
 
-        for ev in display.poll_events() {
+        // Handle events.
+        events_loop.poll_events(
+            |ev|
             match ev {
-                glium::glutin::Event::Resized(x, y) => {
-                    res = (x as f32, y as f32);
-                    let (sx, sy) = ((res.0 / quality) as u32, (res.1 / quality) as u32);
-                    rtt = glium::texture::texture2d::Texture2d::empty(&display, sx, sy).unwrap();
-                }
-                glium::glutin::Event::Closed => return,
+                glium::glutin::Event::WindowEvent{window_id: _, event: we} =>
+                    match we {
+                        glium::glutin::WindowEvent::Resized(x, y) => {
+                            res = (x as f32, y as f32);
+                            let (sx, sy) = ((res.0 / quality) as u32, (res.1 / quality) as u32);
+                            rtt = glium::texture::texture2d::Texture2d::empty(&display, sx, sy).unwrap();
+                        }
+                        glium::glutin::WindowEvent::Closed => process::exit(0),
+                        _ => ()
+                    }
                 _ => ()
             }
-        }
+        );
 
         let mut target = rtt.as_surface();
         target.clear_color(0.0, 0.0, 1.0, 1.0);
