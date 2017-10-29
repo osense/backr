@@ -1,5 +1,6 @@
 #[macro_use]
 extern crate glium;
+extern crate x11;
 extern crate clap;
 extern crate rand;
 
@@ -60,6 +61,25 @@ fn main() {
         .with_title("Backr");
     let display = glium::Display::new(window, context, &events_loop).unwrap();
 
+    // Set the X11 flag to be a desktop window.
+    // This is by far the hardest part.
+    unsafe {
+        use x11::xlib;
+
+        let x_display = display.gl_window().platform_display() as *mut xlib::Display;
+        let x_window = display.gl_window().platform_window() as u64;
+        xlib::XChangeProperty(
+            x_display,
+            x_window,
+            xlib::XInternAtom(x_display, "_NET_WM_WINDOW_TYPE".as_ptr() as *const i8, xlib::False),
+            xlib::XA_ATOM,
+            32,
+            xlib::PropModeReplace,
+            xlib::XInternAtom(x_display, "_NET_WM_WINDOW_TYPE_DESKTOP".as_ptr() as *const i8, xlib::False) as *const u8,
+            1);
+    }
+
+    // Prepare stuff for rendering.
     let vertex1 = Vertex { position: (-1.0, -1.0), tex_coords: (0.0, 0.0) };
     let vertex2 = Vertex { position: (-1.0,  1.0), tex_coords: (0.0, 1.0) };
     let vertex3 = Vertex { position: ( 1.0,  1.0), tex_coords: (1.0, 1.0) };
