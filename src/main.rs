@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate glium;
 extern crate clap;
+extern crate rand;
 
 use std::io::prelude::*;
 use std::process;
@@ -8,6 +9,7 @@ use std::fs::File;
 use glium::Surface;
 use clap::{Arg, App};
 use std::{thread, time};
+use rand::distributions::{IndependentSample, Range};
 
 
 #[derive(Copy, Clone)]
@@ -100,7 +102,10 @@ fn main() {
     let texture_program = glium::Program::from_source(&display, vertex_shader_src, texture_shader_src, None).unwrap();
     let mut rtt = glium::texture::texture2d::Texture2d::empty(&display, 800, 800).unwrap();
 
-    let time = time::SystemTime::now();
+    // Initialize the time uniform to a random value, so that we don't always look at the same thing at startup.
+    let mut rng = rand::thread_rng();
+    let offset = Range::new(0, 1000).ind_sample(&mut rng);
+    let time = time::SystemTime::now() - time::Duration::new(offset, 0);
     let mut res = (800 as f32, 800 as f32);
 
     // Render. Update. Shine.

@@ -6,3 +6,4 @@ authors = ["Adam Krupicka <akr@mail.muni.cz>"]
 [dependencies]
 glium = "*"
 clap = "*"
+rand = "*"
