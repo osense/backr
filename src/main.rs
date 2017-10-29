@@ -111,16 +111,15 @@ fn main() {
         events_loop.poll_events(
             |ev|
             match ev {
-                glium::glutin::Event::WindowEvent{window_id: _, event: we} =>
-                    match we {
-                        glium::glutin::WindowEvent::Resized(x, y) => {
-                            res = (x as f32, y as f32);
-                            let (sx, sy) = ((res.0 / quality) as u32, (res.1 / quality) as u32);
-                            rtt = glium::texture::texture2d::Texture2d::empty(&display, sx, sy).unwrap();
-                        }
-                        glium::glutin::WindowEvent::Closed => process::exit(0),
-                        _ => ()
+                glium::glutin::Event::WindowEvent{window_id: _, event: we} => match we {
+                    glium::glutin::WindowEvent::Resized(x, y) => {
+                        res = (x as f32, y as f32);
+                        let (sx, sy) = ((res.0 / quality) as u32, (res.1 / quality) as u32);
+                        rtt = glium::texture::texture2d::Texture2d::empty(&display, sx, sy).unwrap();
                     }
+                    glium::glutin::WindowEvent::Closed => process::exit(0),
+                    _ => ()
+                }
                 _ => ()
             }
         );
